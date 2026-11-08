@@ -42,11 +42,12 @@ Move the camera to look at x/z (optionally set zoom distance, and mod 0.30: yaw/
 
 ### `cs2_set_speed`
 
-Set simulation speed: 0 = pause, 1, 2 or 3.
+Set simulation speed: 0 = pause, 1 .. 16 (the game's own buttons are 1, 2 and 4). The game runs about 60 x speed simulation frames per second but at most 8 per rendered frame, so speeds above 8 only help above 60 fps. performance = 'simulation' stops the game from cutting simulation steps to keep the frame rate (runtime only, not written to the game's settings).
 
 | Parameter | Type | Description |
 |---|---|---|
 | `speed` * | number |  |
+| `performance` | string |  |
 
 ### `cs2_settings`
 

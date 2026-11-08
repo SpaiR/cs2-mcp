@@ -770,7 +770,7 @@ def t_commit(a): return rpc("preview_commit", {"allow_errors": a.get("allow_erro
 def t_cancel(_): return rpc("preview_cancel", {"timeout_s": 30})
 def t_tool_reset(a): return rpc("tool_reset", {"reason": a.get("reason", "cs2_tool_reset"), "timeout_s": 15})
 def t_history(_): return rpc("history")
-def t_speed(a): return rpc("set_speed", {"speed": a["speed"]})
+def t_speed(a): return rpc("set_speed", {k: a[k] for k in ("speed", "performance") if k in a})
 def t_goto(a):
     if "distance" in a and "zoom" not in a: a = dict(a, zoom=a["distance"])   # common alias
     return rpc("camera_goto", {k: a[k] for k in ("x", "z", "zoom", "yaw", "pitch") if k in a})
@@ -1124,8 +1124,11 @@ TOOLS = [
      "0.25 also has a watchdog that does this automatically ~2 s after the tool loses the active-tool slot.",
      {"type": "object", "properties": {"reason": {"type": "string"}}}, t_tool_reset),
     ("cs2_history", "List the undo history (newest first).", {"type": "object", "properties": {}}, t_history),
-    ("cs2_set_speed", "Set simulation speed: 0 = pause, 1, 2 or 3.",
-     {"type": "object", "properties": {"speed": {"type": "number"}}, "required": ["speed"]}, t_speed),
+    ("cs2_set_speed", "Set simulation speed: 0 = pause, 1 .. 16 (the game's own buttons are 1, 2 and 4). The game runs about 60 x speed "
+     "simulation frames per second but at most 8 per rendered frame, so speeds above 8 only help above 60 fps. performance = "
+     "'simulation' stops the game from cutting simulation steps to keep the frame rate (runtime only, not written to the game's settings).",
+     {"type": "object", "properties": {"speed": {"type": "number"},
+      "performance": {"type": "string", "enum": ["simulation", "balanced", "framerate"]}}, "required": ["speed"]}, t_speed),
     ("cs2_camera_goto", "Move the camera to look at x/z (optionally set zoom distance, and mod 0.30: yaw/pitch view angle in degrees).",
      {"type": "object", "properties": {"x": {"type": "number"}, "z": {"type": "number"}, "zoom": {"type": "number", "description": "camera distance (m); alias: distance"}, "distance": {"type": "number"},
                                        "yaw": {"type": "number", "description": "compass heading of the view, degrees"}, "pitch": {"type": "number", "description": "look-down angle, degrees"}}}, t_goto),

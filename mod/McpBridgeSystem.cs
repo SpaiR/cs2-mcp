@@ -255,10 +255,24 @@ namespace CS2MCP
 
         object SetSpeed(Dictionary<string, object> p)
         {
+            // SimulationSystem runs about 60 x speed simulation frames per second, at most 8 per rendered
+            // frame, so speeds above 8 only help above 60 fps. Unless the performance preference is
+            // SimulationSpeed it also cuts steps to fit the frame time.
             float s = (float)Json.Num(p, "speed", 1);
-            if (s < 0 || s > 3) throw new ArgumentException("speed must be 0 (pause) .. 3");
+            if (s < 0 || s > 16) throw new ArgumentException("speed must be 0 (pause) .. 16");
+            string performance = Json.Str(p, "performance", null);
+            if (performance != null)
+            {
+                m_Sim.performancePreference = performance switch
+                {
+                    "simulation" => SimulationSystem.PerformancePreference.SimulationSpeed,
+                    "balanced" => SimulationSystem.PerformancePreference.Balanced,
+                    "framerate" => SimulationSystem.PerformancePreference.FrameRate,
+                    _ => throw new ArgumentException("performance must be simulation, balanced or framerate"),
+                };
+            }
             m_Sim.selectedSpeed = s;
-            return new Dictionary<string, object> { ["speed"] = m_Sim.selectedSpeed };
+            return new Dictionary<string, object> { ["speed"] = m_Sim.selectedSpeed, ["performance"] = m_Sim.performancePreference.ToString() };
         }
 
         public float SampleHeight(float x, float z)
