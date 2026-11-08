@@ -1560,11 +1560,15 @@ TOOLS = [
      "the loaded city holds. Waits for the city to settle first (a menu request during post-load settling hung the game).",
      {"type": "object", "properties": {}}, lambda a: __import__("gamesession").main_menu(rpc)),
     ("cs2_restart_game", "Full game restart loop (mod 0.17 + process control): quit_game, wait for the process to exit, "
-     "force-kill it if it hangs on exit (known game shutdown hang), relaunch via Steam, wait for the main menu, then "
-     "optionally load `save`. Needed to load new mod builds or to reload prefab entities (sub-areas) after cs2_asset_configure. "
+     "force-kill it if it hangs on exit (known game shutdown hang), relaunch, wait for the main menu, then "
+     "optionally load `save`. The relaunch starts Cities2.exe directly (no Paradox Launcher, no Play click; Steam must be "
+     "running). Needed to load new mod builds or to reload prefab entities (sub-areas) after cs2_asset_configure. "
      "ONLY with the user's go-ahead: it closes the running game (unsaved progress is lost).",
-     {"type": "object", "properties": {"save": {"type": "string", "description": "save to load after the main menu (e.g. the test city)"}}},
-     lambda a: __import__("gamesession").restart(rpc, a.get("save"))),
+     {"type": "object", "properties": {
+         "save": {"type": "string", "description": "save to load after the main menu (e.g. the test city)"},
+         "launch": {"type": "string", "enum": ["direct", "steam"], "description": "direct (default): Cities2.exe with SteamAppId set, so Steam does not relaunch it through the Paradox Launcher. steam: steam://rungameid, the launcher waits for a Play click and `args` are ignored"},
+         "args": {"type": "array", "items": {"type": "string"}, "description": "game command-line options for a direct launch, e.g. [\"-disableModding\", \"-disableCodeModding-\"] = local mods only (Paradox Mods subscriptions are not loaded; the second option turns code mods back on), \"-noSplash\", \"-developerMode\""}}},
+     lambda a: __import__("gamesession").restart(rpc, a.get("save"), a.get("launch", "direct"), a.get("args") or ())),
     ("cs2_service_budget", "Service budgets (mod 0.16), like the Budget panel: every city service's budget slider (%), the "
      "building efficiency that budget gives (the game's curve), estimated upkeep, and the city's monthly balance / income / "
      "expenses. set = {service name: percent 50..150} moves sliders (e.g. {\"Education\": 100}); preview = percentages to see "

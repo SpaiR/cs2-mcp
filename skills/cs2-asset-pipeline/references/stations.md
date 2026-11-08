@@ -232,8 +232,8 @@ x across the lot, y up (0 = ground, negative = underground), z along the lot dep
     coordinates).
   - The main-menu re-import worked ONCE per game session: on the 2nd menu round-trip the main asset's `.Geometry` stayed locked
     (IOException). Then use `cs2_restart_game`.
-  - Prefab-entity changes (areas) or a new mod DLL need `cs2_restart_game`. A Steam launch stops at the Paradox Launcher
-    (Play click).
+  - Prefab-entity changes (areas) or a new mod DLL need `cs2_restart_game`. Its default direct launch skips the Paradox
+    Launcher; `launch: "steam"` stops there (Play click).
 - **Which edge faces the street:** the game's front is the building's local +z edge (the lot WIDTH edge). To make
   another side the street front, keep modelling in a DESIGN frame and rotate at output:
   - Gameplay lists (nets, objects, areas): `(x, z) → (-z, x)`, `yaw' = yaw - 90`.

@@ -267,8 +267,9 @@ tell the user something is impossible without checking the game's own prefabs.
   now waits for calm (`settle`) first.
 - **Force-kill.** Only force-kill a hung game (`taskkill /IM Cities2.exe /F`) when the user reports it or the loop
   detects it.
-- **The Paradox Launcher needs a Play click** on every relaunch. A direct `Cities2.exe` launch does NOT work: it spawns
-  the launcher and then hangs.
+- **Relaunch is direct.** `cs2_restart_game` starts `Cities2.exe` with `SteamAppId` set, so no Paradox Launcher and no
+  Play click (Steam must be running). A plain `Cities2.exe` start without it brought up the launcher and hung
+  (tested 2026-09-24); with `launch: "steam"` the launcher needs a Play click.
 - **Which update needs what:**
   - Mesh/texture-only update: main menu, then `preset=None` import, then reload. It works once per game session; a
     second time the `.Geometry` stays locked, so restart.

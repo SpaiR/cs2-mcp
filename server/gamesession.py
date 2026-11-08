@@ -4,7 +4,35 @@ list_saves / load_save / main_menu / quit_game; process control happens here (Wi
 import os, subprocess, time
 
 EXE = "Cities2.exe"
-STEAM_URI = "steam://rungameid/949230"
+APP_ID = "949230"
+STEAM_URI = f"steam://rungameid/{APP_ID}"
+# Processes of the Paradox Launcher chain: the game's Launcher\dowser.exe, the launcher itself and its bootstrapper.
+LAUNCHERS = ("dowser.exe", "Paradox Launcher.exe", "bootstrapper-v2.exe")
+
+
+def _launcher_running():
+    out = subprocess.run(["tasklist", "/NH"], capture_output=True, text=True).stdout.lower()
+    return any(name.lower() in out for name in LAUNCHERS)
+
+
+def _game_dir():
+    """The game folder, from CSII_INSTALLATIONPATH (set by the game's modding toolchain)."""
+    game_dir = os.environ.get("CSII_INSTALLATIONPATH")
+    if not game_dir or not os.path.isfile(os.path.join(game_dir, EXE)):
+        raise RuntimeError(f"{EXE} not found: CSII_INSTALLATIONPATH is {game_dir!r} (install the modding toolchain from "
+                           "the game's Options > Modding, or use launch='steam')")
+    return game_dir
+
+
+def _launch_direct(game_dir, args):
+    """Start Cities2.exe without Steam's launch chain (Steam -> Paradox Launcher -> game). SteamAppId / SteamGameId tell
+    the Steam API the game was started for this app, so its RestartAppIfNecessary check does not relaunch it through
+    Steam (and the launcher). Steam itself must be running. The game gets no handles of ours: this server talks MCP
+    over stdio."""
+    env = dict(os.environ, SteamAppId=APP_ID, SteamGameId=APP_ID)
+    subprocess.Popen([os.path.join(game_dir, EXE), *args], cwd=game_dir, env=env, close_fds=True,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                     creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP)
 
 
 def _running():
@@ -70,9 +98,14 @@ def load(rpc, name, wait=True, timeout_s=600):
     return {"request": r, "city_loaded": ok, "seconds": secs}
 
 
-def restart(rpc, save=None, launch="steam", quit_wait_s=45, boot_timeout_s=420, load_timeout_s=600):
+def restart(rpc, save=None, launch="direct", args=(), quit_wait_s=45, boot_timeout_s=420, load_timeout_s=600):
     """quit_game -> wait quit_wait_s for the process to end -> taskkill /F if it hangs (known exit hang in the game's
-    platform shutdown) -> launch -> wait for the bridge at the main menu -> optionally load `save`."""
+    platform shutdown) -> launch -> wait for the bridge at the main menu -> optionally load `save`.
+    launch: 'direct' starts Cities2.exe with `args` (see _launch_direct); 'steam' goes through Steam and the Paradox
+    Launcher, which waits for a Play click and ignores `args`."""
+    if launch not in ("direct", "steam"):
+        raise ValueError("launch must be 'direct' or 'steam'")
+    game_dir = _game_dir() if launch == "direct" else None   # fail before the game is closed
     log = []
     if _running():
         try: rpc("quit_game", {}, timeout=10); log.append("quit requested")
@@ -84,14 +117,17 @@ def restart(rpc, save=None, launch="steam", quit_wait_s=45, boot_timeout_s=420, 
             time.sleep(4)
         else:
             log.append(f"exited cleanly in {round(time.time() - t0)} s")
-    # NOTE: launching Cities2.exe directly does NOT work (tested 2026-09-24): without the launcher's session token the
-    # game spawns the Paradox Launcher itself and then hangs in a GameManager.OnGUI NullReferenceException loop.
-    if launch == "steam":
-        os.startfile(STEAM_URI); log.append("launched via Steam (the Paradox Launcher may need a Play click)")
+    # A plain Cities2.exe start without SteamAppId brought up the Paradox Launcher, then the game looped on a
+    # GameManager.OnGUI NullReferenceException (tested 2026-09-24). With SteamAppId set (_launch_direct) the game
+    # reached the main menu in 25 s with no launcher and no exception (tested 2026-11-08).
+    if launch == "direct":
+        _launch_direct(game_dir, list(args)); log.append(f"launched {EXE} directly {' '.join(args)}".rstrip())
     else:
-        raise ValueError("launch must be 'steam'")
+        os.startfile(STEAM_URI); log.append("launched via Steam (the Paradox Launcher may need a Play click)")
     ok, st, secs = wait_for(rpc, lambda s: _mode(s)[0] not in (None, "") and not _mode(s)[2] and not _mode(s)[1], boot_timeout_s, 5)
     log.append(f"main menu {'reached' if ok else 'NOT reached'} after {secs} s")
+    if launch == "direct" and _launcher_running():
+        log.append("the Paradox Launcher is running: the direct start was relaunched through it (Play click needed?)")
     res = {"log": log, "main_menu": ok, "status": st}
     if ok and save:
         res["load"] = load(rpc, save, True, load_timeout_s)

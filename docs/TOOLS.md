@@ -80,11 +80,13 @@ Return to the main menu (mod 0.17; unsaved progress is lost) - e.g. to re-import
 
 ### `cs2_restart_game`
 
-Full game restart loop (mod 0.17 + process control): quit_game, wait for the process to exit, force-kill it if it hangs on exit (known game shutdown hang), relaunch via Steam, wait for the main menu, then optionally load `save`. Needed to load new mod builds or to reload prefab entities (sub-areas) after cs2_asset_configure. ONLY with the user's go-ahead: it closes the running game (unsaved progress is lost).
+Full game restart loop (mod 0.17 + process control): quit_game, wait for the process to exit, force-kill it if it hangs on exit (known game shutdown hang), relaunch, wait for the main menu, then optionally load `save`. The relaunch starts Cities2.exe directly (no Paradox Launcher, no Play click; Steam must be running). Needed to load new mod builds or to reload prefab entities (sub-areas) after cs2_asset_configure. ONLY with the user's go-ahead: it closes the running game (unsaved progress is lost).
 
 | Parameter | Type | Description |
 |---|---|---|
 | `save` | string | save to load after the main menu (e.g. the test city) |
+| `launch` | string | direct (default): Cities2.exe with SteamAppId set, so Steam does not relaunch it through the Paradox Launcher. steam: steam://rungameid, the launcher waits for a Play click and `args` are ignored |
+| `args` | string[] | game command-line options for a direct launch, e.g. ["-disableModding", "-disableCodeModding-"] = local mods only (Paradox Mods subscriptions are not loaded; the second option turns code mods back on), "-noSplash", "-developerMode" |
 
 ### `cs2_history`
 

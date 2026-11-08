@@ -14,7 +14,7 @@
 
 ## Limitations
 
-- **Windows only** as tested. The build assumes a Steam install. `cs2_restart_game` launches the game through Steam.
+- **Windows only** as tested. The build assumes a Steam install. `cs2_restart_game` starts `Cities2.exe` directly and needs Steam running.
 - **Game updates can break the mod.** It uses internal game APIs. When a member is renamed, the affected feature
   logs one error and stops working, and the rest keep going. Report it with your game version.
 - **Some edits cannot be undone:** terraforming, district policy changes and asset imports. The undo stack (50 deep,
